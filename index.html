@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>五年級分數大冒險 (加大版)</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dirt: #4a3b2a;
+            --text-color: #ffffff;
+            --heart: #ff3333;
+            --highlight: #55ffff; /* 通分藍 */
+            --strike: #ff5555;    /* 刪除紅 */
+            --new-num: #55ff55;   /* 新數字綠 */
+        }
+
+        /* --- 基礎設定 --- */
+        body {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: 'VT323', monospace;
+            color: var(--text-color);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        /* 背景生成 */
+        .mc-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: linear-gradient(135deg, #5d4a35 25%, transparent 25%) -50px 0,
+                        linear-gradient(225deg, #5d4a35 25%, transparent 25%) -50px 0,
+                        linear-gradient(315deg, #5d4a35 25%, transparent 25%),
+                        linear-gradient(45deg, #5d4a35 25%, transparent 25%);
+            background-size: 100px 100px;
+            background-color: #4a3b2a;
+            opacity: 0.8;
+        }
+
+        /* --- 介面容器 --- */
+        .screen {
+            display: none;
+            width: 100%; height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px; box-sizing: border-box;
+            position: absolute; top: 0; left: 0;
+        }
+        .active { display: flex; }
+
+        /* --- 橫屏強制 --- */
+        #orientation-lock {
+            display: none; z-index: 9999; background: #000;
+            text-align: center; justify-content: center; align-items: center; flex-direction: column;
+        }
+        @media (orientation: portrait) { #orientation-lock { display: flex; } }
+
+        /* --- Minecraft UI --- */
+        .mc-btn {
+            font-family: 'VT323', monospace; font-size: 2rem; color: #fff;
+            background: #757575; border: 4px solid #000;
+            border-top-color: #fff; border-left-color: #fff;
+            border-bottom-color: #373737; border-right-color: #373737;
+            padding: 10px 30px; margin: 10px; cursor: pointer; text-shadow: 2px 2px #000; min-width: 200px;
+        }
+        .mc-btn:active {
+            border-top-color: #373737; border-left-color: #373737;
+            border-bottom-color: #fff; border-right-color: #fff;
+            background: #555; transform: translateY(2px);
+        }
+
+        /* 遊戲 HUD */
+       .hud-bar {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: clamp(1.2rem, 4vw, 1.8rem); /* 响应式字体 */
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    min-height: 50px; /* 确保最小高度 */position: relative;        /* ✅ 新增 */
+    top: 35px;                /* ✅ 新增：向下移动25px，与timer-track保持一致 */
+
+}
+
+/* iPad 专用样式 */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    .hud-bar {
+        font-size: 1.6rem;
+        padding: 12px 25px;
+        min-height: 55px;
+        top: 40px;            /* ✅ iPad上移动30px，与timer-track保持一致 */
+    }
+
+ #ui-hearts {
+        font-size: 1.8rem !important;
+        letter-spacing: 2px;
+    }
+}
+
+.timer-track {
+    width: 100%;
+    max-width: 600px;
+    height: 20px;
+    background: #333;
+    border: 3px solid #555;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    display: block !important;
+    position: relative;        /* ✅ 新增 */
+    top: 25px;                /* ✅ 新增：向下移动25px */
+}
+
+.timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ffaa00, #44ff44);
+    width: 100%;
+    transition: width 0.5s linear;
+    min-height: 20px;
+    /* ✅ 保持原样，不要添加任何位移 */
+}
+
+/* iPad 适配 */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    .timer-track {
+        height: 25px;
+        max-width: 700px;
+        top: 30px;            /* ✅ iPad上可以移动更多 */
+    }
+    
+    .timer-fill {
+        min-height: 25px;
+    }
+}
+        /* 題目區域 */
+        .npc-area { 
+            display: flex; align-items: center; gap: 15px; font-size: 1.5rem; 
+            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 2px solid #555; 
+            width: 90%; max-width: 800px; margin-bottom: 5px;
+        }
+        .npc-avatar { font-size: 3rem; animation: bounce 2s infinite; }
+        
+        .problem-display { 
+            font-size: 3rem; margin: 5px 0 10px 0; 
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+            text-shadow: 2px 2px #000; min-height: 80px; flex-wrap: wrap;
+        }
+
+        /* --- 分數顯示 --- */
+        .mixed-num {
+            display: inline-flex;
+            flex-direction: row;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 5px;
+        }
+        .whole-display {
+            font-size: 3.5rem;
+            margin-right: 8px;
+            line-height: 1;
+        }
+        .frac-stack {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            font-size: 0.85em;
+        }
+        .frac-n { 
+            border-bottom: 3px solid #fff; 
+            padding: 2px 5px; 
+            display: block; text-align: center; line-height: 1;
+        }
+        .frac-d { 
+            padding: 2px 5px; 
+            display: block; text-align: center; line-height: 1;
+        }
+
+        /* --- 輸入框 (加大修正) --- */
+        .input-area { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 15px; /* 加大間距 */
+            margin-bottom: 10px; 
+        }
+        
+        /* 每個輸入格加大 */
+        .input-box {
+            width: 90px;  /* 加大寬度 */
+            height: 70px; /* 加大高度 */
+            background: #222; 
+            border: 4px solid #777;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 2rem; /* 加大字體 */
+            color: #fff;
+            cursor: pointer;
+        }
+        .input-box.active { 
+            border-color: #ffff00; 
+            background: #444; 
+            transform: scale(1.05); 
+            box-shadow: 0 0 15px #ffff00; 
+        }
+        
+        .frac-group { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 8px; /* 加大分子分母間距 */
+        }
+        .frac-line { 
+            width: 80px; /* 分數線跟著加大 */
+            height: 5px; 
+            background: #fff; 
+        }
+
+        /* 虛擬鍵盤 */
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; width: 90%; max-width: 300px; }
+        .key {
+            background: #757575; border: 3px solid #fff; border-bottom-color: #333; border-right-color: #333;
+            color: white; font-size: 2rem; padding: 6px 0; cursor: pointer; text-shadow: 2px 2px #000;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .key:active { background: #555; transform: scale(0.95); }
+        .key-go { grid-column: span 1; background: #2ecc71; }
+        .key-next { grid-column: span 1; background: #3498db; }
+        .key-del { background: #e74c3c; }
+
+        /* 詳解區域 */
+        .explain-container { 
+            background: rgba(0,0,0,0.9); padding: 20px; border: 4px solid #fff; 
+            width: 95%; max-width: 800px; max-height: 85vh; overflow-y: auto; text-align: left;
+            font-size: 1.8rem;
+        }
+        .step-block { margin-bottom: 25px; border-left: 5px solid #3498db; padding-left: 15px; }
+        .step-desc { font-size: 1.2rem; color: #aaa; margin-bottom: 8px; font-family: sans-serif; }
+        .step-math { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 2.2rem;}
+        
+        .strike-val { text-decoration: line-through; color: var(--strike); opacity: 0.8; }
+        .new-val { color: var(--new-num); font-size: 0.7em; margin-left: 2px; vertical-align: super; font-weight: bold; }
+        .highlight-blue { color: var(--highlight); font-weight: bold; } 
+        .highlight-green { color: var(--new-num); font-weight: bold; } 
+
+        /* 背包 (固定15格版) */
+        .inventory-grid { 
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 一行5個，共3行 */
+            gap: 8px; 
+            background: #c6c6c6; 
+            border: 4px solid #373737; 
+            padding: 10px; 
+            max-height: 60vh; 
+            overflow-y: auto;
+        }
+
+        /* 基礎方框 (代表空的格子) */
+        .slot { 
+            width: 60px; height: 60px; 
+            background: #8b8b8b; 
+            border: 4px solid #666; /* 空格子的邊框顏色 (深灰) */
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 2.5rem; position: relative;
+        }
+        
+        /* --- 不同稀有度的邊框顏色 --- */
+        .slot.common { border-color: #fff; background: #a0a0a0; }        /* 普通：白框 + 稍亮背景 */
+        .slot.rare   { border-color: #3498db; box-shadow: inset 0 0 10px #3498db; } /* 稀有：藍框 + 藍光 */
+        .slot.legend { border-color: #f1c40f; box-shadow: inset 0 0 15px #f1c40f; animation: glow 1.5s infinite alternate; } /* 傳說：金框 + 金光 */
+
+        .count { 
+            position: absolute; bottom: 2px; right: 2px; 
+            font-size: 1rem; color: white; text-shadow: 1px 1px 0 #000;
+        }
+
+        /* 動畫 */
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes glow { from { box-shadow: inset 0 0 5px gold; } to { box-shadow: inset 0 0 20px gold; } }
+        .shake { animation: shake-anim 0.4s; }
+        @keyframes shake-anim { 0% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } 100% { transform: translateX(0); } }
+        .red-flash { animation: flash-anim 0.5s; }
+        @keyframes flash-anim { 0%, 100% { box-shadow: inset 0 0 0 0 red; } 50% { box-shadow: inset 0 0 50px 20px rgba(255,0,0,0.5); } }
+        .hint-btn { position: absolute; right: 10px; top: 120px; background: #e67e22; border-radius: 50%; width: 60px; height: 60px; display: none; justify-content: center; align-items: center; font-size: 2rem; border: 2px solid white; cursor: pointer; z-index: 10; animation: bounce 1s infinite;}
+        
+    </style>
+</head>
+<body>
+
+    <div id="orientation-lock" class="screen">
+        <div style="font-size: 4rem;">📱➡️</div>
+        <h1>請旋轉螢幕至橫向</h1>
+        <p>為了最佳體驗，請使用橫向模式遊玩</p>
+    </div>
+
+    <div id="screen-init" class="screen active">
+        <div style="font-size: 5rem;" class="shake">📦</div>
+        <h1>正在生成世界...</h1>
+        <p>點擊下方按鈕載入音效</p>
+        <button class="mc-btn" onclick="Game.init()">點擊開始 (Click to Start)</button>
+    </div>
+
+    <div id="screen-home" class="screen">
+        <div class="mc-bg"></div>
+        <h1 style="font-size: 3rem; color: #f1c40f; text-shadow: 4px 4px #000;">五年級分數大冒險</h1>
+        <div style="display: flex; gap: 20px;">
+            <button class="mc-btn" onclick="Game.start('basic')">🌱 基本版</button>
+            <button class="mc-btn" style="background:#e74c3c" onclick="Game.start('challenge')">🔥 挑戰版</button>
+        </div>
+        <button class="mc-btn" style="background:#3498db; margin-top: 15px;" onclick="Inventory.show()">🎒 我的背包</button>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div class="mc-bg"></div>
+        <div class="hud-bar">
+            <span>Score: <span id="ui-score">0</span></span>
+            <span style="color:#ff3333" id="ui-hearts">❤️❤️❤️❤️❤️</span>
+        </div>
+        <div class="timer-track"><div id="timer-bar" class="timer-fill"></div></div>
+
+        <div class="npc-area">
+            <div class="npc-avatar" id="npc-face">🧟</div>
+            <div id="npc-text">準備好戰鬥了嗎？</div>
+        </div>
+        
+        <div id="hint-btn" class="hint-btn" onclick="Game.showHint()">💡</div>
+
+        <div class="problem-display" id="problem-area"></div>
+
+        <div class="input-area">
+            <div id="in-w" class="input-box" onclick="UI.focus('w')"></div>
+            <div class="frac-group">
+                <div id="in-n" class="input-box" onclick="UI.focus('n')"></div>
+                <div class="frac-line"></div>
+                <div id="in-d" class="input-box" onclick="UI.focus('d')"></div>
+            </div>
+        </div>
+
+        <div class="numpad">
+            <div class="key" onclick="UI.input(1)">1</div>
+            <div class="key" onclick="UI.input(2)">2</div>
+            <div class="key" onclick="UI.input(3)">3</div>
+            <div class="key key-next" onclick="UI.nextField()">跳格 ➡️</div>
+            
+            <div class="key" onclick="UI.input(4)">4</div>
+            <div class="key" onclick="UI.input(5)">5</div>
+            <div class="key" onclick="UI.input(6)">6</div>
+            <div class="key key-del" onclick="UI.del()">⬅️</div>
+            
+            <div class="key" onclick="UI.input(7)">7</div>
+            <div class="key" onclick="UI.input(8)">8</div>
+            <div class="key" onclick="UI.input(9)">9</div>
+            <div class="key key-go" onclick="Game.submit()">GO!</div>
+            
+            <div class="key" style="grid-column: span 4;" onclick="UI.input(0)">0</div>
+        </div>
+    </div>
+
+    <div id="screen-explain" class="screen">
+        <div class="mc-bg" style="filter: grayscale(80%);"></div>
+        <h2 style="color: #e74c3c;">受傷了！來看詳解：</h2>
+        <div class="explain-container" id="explain-content"></div>
+        <button class="mc-btn" onclick="Game.continue()">繼續冒險</button>
+    </div>
+
+    <div id="screen-reward" class="screen">
+        <div class="mc-bg"></div>
+        <h1 id="reward-title">任務完成！</h1>
+        <div id="reward-icon" style="font-size: 8rem; margin: 20px; animation: bounce 1s infinite;"></div>
+        <p id="reward-msg" style="font-size: 2rem; color: gold;"></p>
+        <button class="mc-btn" onclick="UI.showScreen('screen-home')">回到首頁</button>
+    </div>
+
+    <div id="screen-inventory" class="screen">
+        <div class="mc-bg"></div>
+        <h2>🎒 戰利品背包</h2>
+        <div class="inventory-grid" id="inv-grid"></div>
+        <button class="mc-btn" onclick="UI.showScreen('screen-home')">關閉</button>
+    </div>
+
+    <script>
+    /* =========================================
+       1. 數學核心 (Fraction Class)
+       ========================================= */
+    class Fraction {
+        constructor(w, n, d) {
+            this.w = parseInt(w) || 0;
+            this.n = parseInt(n) || 0;
+            this.d = (this.n === 0) ? 1 : (parseInt(d) || 1);
+            if (this.d === 0) this.d = 1; 
+        }
+
+        toImproper() { return { n: this.w * this.d + this.n, d: this.d }; }
+        val() { return this.w + (this.n / this.d); }
+
+        simplify() {
+            if (this.n === 0) return new Fraction(this.w, 0, 1);
+            let imp = this.toImproper();
+            let common = this.gcd(imp.n, imp.d);
+            let n = imp.n / common;
+            let d = imp.d / common;
+            let w = Math.floor(n / d);
+            let remN = n % d;
+            return new Fraction(w, remN, d);
+        }
+
+        add(other) {
+            let f1 = this.toImproper(); let f2 = other.toImproper();
+            let lcd = (f1.d * f2.d) / this.gcd(f1.d, f2.d);
+            let num = f1.n * (lcd/f1.d) + f2.n * (lcd/f2.d);
+            return new Fraction(0, num, lcd).simplify();
+        }
+
+        sub(other) {
+            let f1 = this.toImproper(); let f2 = other.toImproper();
+            let lcd = (f1.d * f2.d) / this.gcd(f1.d, f2.d);
+            let num = f1.n * (lcd/f1.d) - f2.n * (lcd/f2.d);
+            return new Fraction(0, num, lcd).simplify();
+        }
+
+        mul(other) {
+            let f1 = this.toImproper(); let f2 = other.toImproper();
+            return new Fraction(0, f1.n * f2.n, f1.d * f2.d).simplify();
+        }
+
+        gcd(a, b) { return b === 0 ? a : this.gcd(b, a % b); }
+
+        // 一般顯示 (整數在左，分數在右)
+        toHTML(cls="") {
+            if (this.w === 0 && this.n === 0) return `<div class="mixed-num ${cls}"><span class="whole-display">0</span></div>`;
+            if (this.n === 0) return `<div class="mixed-num ${cls}"><span class="whole-display">${this.w}</span></div>`;
+            let wHtml = (this.w !== 0) ? `<span class="whole-display">${this.w}</span>` : '';
+            return `<div class="mixed-num ${cls}">
+                        ${wHtml}
+                        <div class="frac-stack">
+                            <span class="frac-n">${this.n}</span>
+                            <span class="frac-d">${this.d}</span>
+                        </div>
+                    </div>`;
+        }
+    }
+
+    /* =========================================
+       2. 音效系統 (AudioSys)
+       ========================================= */
+    const AudioSys = {
+        ctx: null, bgmGain: null, bgmOsc: null, bgmInterval: null,
+        init() {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.bgmGain = this.ctx.createGain();
+            this.bgmGain.connect(this.ctx.destination);
+            this.bgmGain.gain.value = 0.05;
+            this.playBGM();
+        },
+        playBGM() {
+            if(!this.ctx || this.bgmOsc) return;
+            const osc = this.ctx.createOscillator();
+            const filter = this.ctx.createBiquadFilter();
+            osc.type = 'triangle'; filter.type = 'lowpass'; filter.frequency.value = 600; 
+            osc.connect(filter); filter.connect(this.bgmGain);
+            let notes = [220, 261, 329, 392]; let i = 0;
+            osc.frequency.setValueAtTime(notes[0], this.ctx.currentTime);
+            this.bgmInterval = setInterval(() => {
+                if(this.ctx.state === 'running' && this.bgmOsc) {
+                    osc.frequency.setValueAtTime(notes[i], this.ctx.currentTime);
+                    i = (i + 1) % notes.length;
+                }
+            }, 400);
+            osc.start(); this.bgmOsc = osc;
+        },
+        stopBGM() {
+            if (this.bgmOsc) { try { this.bgmOsc.stop(); this.bgmOsc.disconnect(); } catch(e){} this.bgmOsc = null; }
+            if (this.bgmInterval) { clearInterval(this.bgmInterval); this.bgmInterval = null; }
+        },
+        ducking() {
+            if(!this.bgmOsc || !this.bgmGain) return;
+            const now = this.ctx.currentTime;
+            this.bgmGain.gain.cancelScheduledValues(now);
+            this.bgmGain.gain.setValueAtTime(this.bgmGain.gain.value, now);
+            this.bgmGain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+            this.bgmGain.gain.linearRampToValueAtTime(0.05, now + 0.6);
+        },
+        sfx(type) {
+            if(!this.ctx) return;
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+            this.ducking();
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            const now = this.ctx.currentTime;
+            if (type === 'click') { 
+                osc.type = 'square'; osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.1);
+                osc.start(now); osc.stop(now+0.1);
+            } else if (type === 'correct') { 
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now);
+                osc.frequency.linearRampToValueAtTime(1760, now+0.1);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.5);
+                osc.start(now); osc.stop(now+0.5);
+            } else if (type === 'wrong') { 
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(50, now+0.4);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now+0.4);
+                osc.start(now); osc.stop(now+0.4);
+            }
+        }
+    };
+
+
+/* =========================================
+       3. 題目生成器 (QuestionGen) - 進階版
+       ========================================= */
+    const QuestionGen = {
+        rand(min, max) { return Math.floor(Math.random()*(max-min+1))+min;
+        },
+        gcd(a, b) { return b===0?a:this.gcd(b, a%b);
+        },
+        lcm(a, b) { return (a*b)/this.gcd(a,b);
+        },
+        
+        // 嚴格生成器：確保分母不重複、答案分母<=18
+        getFrac(isMixed, excludeDenoms=[]) {
+            let d;
+            let tries = 0;
+            do {
+                d = this.rand(2, 9);
+                tries++;
+            } while(excludeDenoms.includes(d) && tries < 50);
+
+            let n = this.rand(1, d-1);
+            while(this.gcd(n, d) > 1) { n = this.rand(1, d-1); }
+            
+            // --- 修改處 1: 將原本 rand(3, 9) 改為 rand(1, 3) ---
+            let w = isMixed ? this.rand(1, 3) : 0; 
+            return new Fraction(w, n, d);
+        },
+
+        generate(type) {
+            let q = { type: type, nums: [], op: [], ans: null, time: 30, hint: false };
+            let f1, f2, f3, safe;
+
+            // --- 1. 單運算符 (5,9,1,6,10,2,3,4) ---
+            if (type === 5) { // 整+分
+                // --- 修改處 2: 限制整數 1-4 ---
+                f1 = new Fraction(this.rand(2, 3), 0, 1);
+                f2 = this.getFrac(false);
+                q.op = ['+']; q.time = 30; q.nums = [f1, f2]; q.ans = f1.add(f2);
+            }
+            else if (type === 9) { // 整-分
+                // --- 修改處 3: 限制整數 1-4 ---
+                f1 = new Fraction(this.rand(1, 3), 0, 1);
+                f2 = this.getFrac(false, []);
+                q.op = ['-']; q.time = 30; q.nums = [f1, f2]; q.ans = f1.sub(f2);
+            }
+            else if (type === 1 || type === 2 || type === 3 || type === 4) { // 乘法
+                q.op = ['×'];
+                q.time = 45;
+                safe = false;
+                while(!safe) {
+                    if(type===1) { f1=this.getFrac(false);
+                    f2=this.getFrac(false, [f1.d]); }
+                    if(type===2) { f1=this.getFrac(true);
+                    f2=this.getFrac(true, [f1.d]); }
+                    if(type===3) { f1=this.getFrac(false);
+                    f2=this.getFrac(true, [f1.d]); }
+                    if(type===4) { 
+                        // --- 修改處 4: 限制整數 1-4 ---
+                        f1=new Fraction(this.rand(2, 4),0,1);
+                        f2=this.getFrac(true); 
+                    }
+                    let ans = f1.mul(f2);
+                    if(ans.d <= 16) safe = true; 
+                }
+                q.nums = [f1, f2];
+                q.ans = f1.mul(f2);
+            }
+            else if (type === 6 || type === 10) { // 異分母 加減
+                q.time = 45;
+                safe = false;
+                while(!safe) {
+                    f1 = this.getFrac(true);
+                    f2 = this.getFrac(true, [f1.d]);
+                    if(this.lcm(f1.d, f2.d) <= 18) safe = true;
+                }
+                if(type === 6) { q.op = ['+'];
+                q.ans = f1.add(f2); }
+                else { 
+                    if(f1.val() < f2.val()) [f1, f2] = [f2, f1];
+                q.op = ['-']; q.ans = f1.sub(f2); 
+                }
+                q.nums = [f1, f2];
+            }
+
+            // --- 2. 雙運算符 (7, 8, 11, 12) ---
+            else if (type === 7 || type === 8 || type === 11 || type === 12) {
+                q.time = 60;
+                safe = false;
+                while(!safe) {
+                    // --- 修改處 5: 限制整數 1-4 ---
+                    if(type === 8 || type === 12) f1 = new Fraction(this.rand(1, 3), 0, 1);
+                    else f1 = this.getFrac(true);
+                    f2 = this.getFrac(true, [f1.d]);
+                    f3 = this.getFrac(true, [f1.d, f2.d]);
+
+                    let l = this.lcm(f1.d, f2.d);
+                    l = this.lcm(l, f3.d);
+                    
+                    if(l <= 18) {
+                        if (type === 7 || type === 8) { // 加
+                            safe = true;
+                            q.op = ['+', '+']; q.ans = f1.add(f2).add(f3);
+                        } else { // 減
+                            if(f1.val() > f2.val() + f3.val() + 0.1) {
+                                safe = true;
+                                q.op = ['-', '-']; q.ans = f1.sub(f2).sub(f3);
+                            }
+                        }
+                    }
+                }
+                q.nums = [f1, f2, f3];
+            }
+
+            // --- 3. 混合重組 (13, 14, 15) ---
+            else {
+                q.time = 75;
+                q.hint = true;
+                safe = false;
+                while(!safe) {
+                    f1 = this.getFrac(true);
+                    f2 = this.getFrac(true, [f1.d]); 
+                    f3 = this.getFrac(true, [f1.d, f2.d]);
+                    let l = this.lcm(f1.d, f2.d); l = this.lcm(l, f3.d);
+                    if(l <= 18) {
+                        if( (f1.val() + f3.val()) > f2.val() + 0.5 ) safe = true;
+                    }
+                }
+                q.nums = [f1, f2, f3];
+                if(type === 13) { q.op = ['+', '-']; q.ans = f1.add(f2).sub(f3);
+                }
+                else { q.op = ['-', '+'];
+                q.ans = f1.sub(f2).add(f3); }
+            }
+            return q;
+        }
+    };
+
+/* =========================================
+       4. 遊戲控制器 (Game) - 挑戰版顯示倒數棒
+       ========================================= */
+    const Game = {
+        mode: 'basic', 
+        score: 0, 
+        hearts: 5, 
+        pool: [], 
+        currentQ: null, 
+        timer: null, 
+        remedialType: null, 
+        simplifyRetry: 0, 
+        badLuck: 0,
+
+        init() { 
+            AudioSys.init();
+            UI.showScreen('screen-home'); 
+        },
+
+        start(mode) {
+            AudioSys.stopBGM();
+            this.mode = mode; 
+            this.score = 0; 
+            this.hearts = 5; 
+            this.pool = [5, 9, 1, 6, 10, 4, 3, 2, 7, 8, 11, 12, 13, 14, 15];
+            this.remedialType = null; 
+            this.badLuck = 0;
+            this.updateHUD();
+            UI.showScreen('screen-game');
+            this.nextQuestion();
+        },
+
+nextQuestion() {
+    // ✅ 基本版和挑战版：达到100分即跳转胜利页
+    if (this.score >= 100) {
+        this.endGame(true);
+        return;
+    }
+    
+
+        // ---------------------------------------------
+
+        if (this.pool.length === 0) { this.endGame(true); return; }
+        UI.clearInputs();
+        let type = this.remedialType ? this.remedialType : this.pool[0];
+        this.currentQ = QuestionGen.generate(type);
+        this.simplifyRetry = 0;
+        this.renderQuestion();
+        this.startTimer();
+    },
+
+        renderQuestion() {
+            const area = document.getElementById('problem-area');
+            area.innerHTML = ''; 
+            let q = this.currentQ;
+            let html = q.nums[0].toHTML();
+            q.op.forEach((op, i) => {
+                html += ` <span style="color:#f1c40f; font-weight:bold; margin:0 5px;">${op}</span> `;
+                html += q.nums[i+1].toHTML();
+            });
+            html += ` <span style="color:#f1c40f;">=</span> ?`;
+            area.innerHTML = html;
+            
+            const mobs = ['🧟','🕷️','💀','🐉','🧙','🐖'];
+            document.getElementById('npc-face').innerText = mobs[Math.floor(Math.random()*mobs.length)];
+            
+            document.getElementById('hint-btn').style.display = 'none';
+            if(q.hint) setTimeout(() => document.getElementById('hint-btn').style.display = 'flex', 2000);
+        },
+
+        showHint() {
+            const q = this.currentQ;
+
+            // 嚴格檢查：必須是 3 個數，且運算符順序為「減、加」 (A - B + C)
+            if (q.nums.length === 3 && q.op[0] === '-' && q.op[1] === '+') {
+                
+                // 取得前兩個數的值
+                let valA = q.nums[0].val();
+                let valB = q.nums[1].val();
+
+                // 條件：只有當 A < B (前面的數不夠減) 時，才顯示提示
+                if (valA < valB) {
+                    alert("村民提示：\n前面的數不夠減？\n試試把後面的加數搬到前面先加！\n(A - B + C ➡️ A + C - B)");
+                }
+            }
+            
+            // 其他所有情況：什麼都不做，直接結束函式
+        },
+
+        startTimer() {
+            clearInterval(this.timer);
+            let bar = document.getElementById('timer-bar');
+            
+            // --- 修改處：控制倒數棒的顯示與隱藏 ---
+            if (this.mode === 'basic') {
+                bar.style.display = 'none'; // 基本版：隱藏
+                return;
+            } else {
+                bar.style.display = 'block'; // 挑戰版：顯示
+            }
+
+            // 重置動畫狀態
+            bar.style.transition = 'none';
+            bar.style.width = '100%';
+            
+            bar.offsetHeight; // 強制重繪 (Force Reflow) 以重啟動畫
+            
+            let time = this.currentQ.time;
+            bar.style.transition = `width ${time}s linear`;
+            bar.style.width = '0%';
+            
+            this.timer = setTimeout(() => { 
+                this.handleFail(true); 
+            }, time * 1000);
+        },
+
+        submit() {
+            clearInterval(this.timer);
+            let w = parseInt(document.getElementById('in-w').innerText) || 0;
+            let n = parseInt(document.getElementById('in-n').innerText) || 0;
+            let d = parseInt(document.getElementById('in-d').innerText);
+            
+            if(n > 0 && !d) { alert("請輸入分母"); this.startTimer(); return; }
+            if(n === 0) d = 1;
+            
+            let userFrac = new Fraction(w, n, d);
+            let ans = this.currentQ.ans;
+
+            // 數值檢查
+            if (Math.abs(userFrac.val() - ans.val()) > 0.000001) {
+                this.handleFail(false);
+                return;
+            }
+
+            // 格式檢查
+            if (n > 0 && QuestionGen.gcd(n, d) > 1) {
+                this.simplifyRetry++;
+                let msg = "數值對了，但能再約簡嗎？";
+                if(this.simplifyRetry > 1) msg = "試試用 2, 3, 5 來約分？";
+                alert(msg); this.startTimer(); return;
+            }
+
+            if (w > 0 && n >= d) {
+                alert("帶分數的分子不能大過分母，請再想想!");
+                this.startTimer(); return;
+            }
+
+            AudioSys.sfx('correct');
+            this.score += 10;
+            this.remedialType = null;
+            if(!this.remedialType && this.pool.length > 0) this.pool.shift();
+            this.updateHUD();
+            this.nextQuestion();
+        },
+
+        handleFail(timeout) {
+            AudioSys.sfx('wrong');
+            document.body.classList.add('red-flash');
+            document.getElementById('screen-game').classList.add('shake');
+            setTimeout(() => {
+                document.body.classList.remove('red-flash');
+                document.getElementById('screen-game').classList.remove('shake');
+            }, 500);
+
+            if (this.mode === 'challenge') {
+                this.hearts--;
+                this.updateHUD();
+                if (this.hearts <= 0) { 
+                    this.endGame(false); return;
+                }
+            }
+            this.remedialType = this.currentQ.type;
+            this.showExplain();
+        },
+
+        showExplain() {
+            let q = this.currentQ;
+            let area = document.getElementById('problem-area').innerHTML;
+            let html = `<div style="margin-bottom:20px; text-align:center;">${area}</div>`;
+            
+            // --- 乘法 ---
+            if (q.op[0] === '×') {
+                let f1 = q.nums[0]; let f2 = q.nums[1];
+                let hasMixed = (f1.w > 0 || f2.w > 0);
+                let stepCount = 1;
+                let imp1 = f1.toImproper(); let imp2 = f2.toImproper();
+
+                if (hasMixed) {
+                    html += `<div class="step-block"><div class="step-desc">${stepCount}. 將帶分數轉為假分數</div><div class="step-math">`;
+                    html += `<div class="mixed-num"><div class="frac-stack"><span class="frac-n">${imp1.n}</span><span class="frac-d">${imp1.d}</span></div></div> × <div class="mixed-num"><div class="frac-stack"><span class="frac-n">${imp2.n}</span><span class="frac-d">${imp2.d}</span></div></div></div></div>`;
+                    stepCount++;
+                }
+
+                let g1 = QuestionGen.gcd(imp1.n, imp2.d);
+                let g2 = QuestionGen.gcd(imp2.n, imp1.d);
+                let needSimplify = (g1 > 1 || g2 > 1);
+
+                if (needSimplify) {
+                    html += `<div class="step-block"><div class="step-desc">${stepCount}. 先約簡，再計算</div><div class="step-math"><div class="mixed-num"><div class="frac-stack">`;
+                    if (g1 > 1) html += `<span class="frac-n"><span class="strike-val">${imp1.n}</span> <span class="new-num" style="font-size:0.8em; color:#55ff55;">${imp1.n/g1}</span></span>`; else html += `<span class="frac-n">${imp1.n}</span>`;
+                    if (g2 > 1) html += `<span class="frac-d"><span class="strike-val">${imp1.d}</span> <span class="new-num" style="font-size:0.8em; color:#55ff55;">${imp1.d/g2}</span></span>`; else html += `<span class="frac-d">${imp1.d}</span>`;
+                    html += `</div></div> × <div class="mixed-num"><div class="frac-stack">`;
+                    if (g2 > 1) html += `<span class="frac-n"><span class="strike-val">${imp2.n}</span> <span class="new-num" style="font-size:0.8em; color:#55ff55;">${imp2.n/g2}</span></span>`; else html += `<span class="frac-n">${imp2.n}</span>`;
+                    if (g1 > 1) html += `<span class="frac-d"><span class="strike-val">${imp2.d}</span> <span class="new-num" style="font-size:0.8em; color:#55ff55;">${imp2.d/g1}</span></span>`; else html += `<span class="frac-d">${imp2.d}</span>`;
+                    html += `</div></div></div></div>`;
+                    stepCount++;
+
+                    let midN = (imp1.n/g1) * (imp2.n/g2);
+                    let midD = (imp1.d/g2) * (imp2.d/g1);
+                    html += `<div class="step-block"><div class="step-desc">${stepCount}. 分子乘分子，分母乘分母</div><div class="step-math">= <div class="mixed-num"><div class="frac-stack"><span class="frac-n">${midN}</span><span class="frac-d">${midD}</span></div></div></div></div>`;
+                } else {
+                    html += `<div class="step-block"><div class="step-desc">${stepCount}. 分子乘分子，分母乘分母</div><div class="step-math">`;
+                    html += `<div class="mixed-num"><div class="frac-stack"><span class="frac-n">${imp1.n}</span><span class="frac-d">${imp1.d}</span></div></div> × <div class="mixed-num"><div class="frac-stack"><span class="frac-n">${imp2.n}</span><span class="frac-d">${imp2.d}</span></div></div>`;
+                    html += ` = <div class="mixed-num"><div class="frac-stack"><span class="frac-n">${imp1.n*imp2.n}</span><span class="frac-d">${imp1.d*imp2.d}</span></div></div></div></div>`;
+                }
+                let finalRes = q.ans.simplify();
+                html += `<div class="step-block"><div class="step-desc">答案</div><div class="step-math">= <span class="highlight-green">${finalRes.toHTML()}</span></div></div>`;
+            } 
+            // --- 整數+分數 ---
+            else if (q.type === 5) {
+                html += `<div class="step-block"><div class="step-desc">直接合併 (整數放左邊)</div><div class="step-math">= <span class="highlight-green">${q.ans.toHTML()}</span></div></div>`;
+            } 
+            // --- 整數-分數 (隱藏0) ---
+            else if (q.type === 9) {
+                let intVal = q.nums[0].w; 
+                let frac = q.nums[1]; 
+                let borrowedInt = intVal - 1;
+                
+                html += `<div class="step-block"><div class="step-desc">1. 整數借位 (1 = <span class="highlight-blue">${frac.d}/${frac.d}</span>)</div>`;
+                html += `<div class="step-math">${q.nums[0].toHTML()} - ${q.nums[1].toHTML()}</div>`;
+                
+                html += `<div class="step-math" style="margin-top:10px;">= <div class="mixed-num">`;
+                if (borrowedInt > 0) {
+                    html += `<span class="whole-display highlight-blue">${borrowedInt}</span>`;
+                }
+                html += `<div class="frac-stack"><span class="frac-n highlight-blue">${frac.d}</span><span class="frac-d highlight-blue">${frac.d}</span></div></div> - ${q.nums[1].toHTML()}</div></div>`;
+                
+                html += `<div class="step-block"><div class="step-desc">2. 答案</div><div class="step-math">= <span class="highlight-green">${q.ans.toHTML()}</span></div></div>`;
+            } 
+            // --- 一般加減 ---
+            else {
+                let denoms = q.nums.map(f => f.d);
+                let lcmVal = denoms[0];
+                for(let i=1; i<denoms.length; i++) lcmVal = QuestionGen.lcm(lcmVal, denoms[i]);
+                let extendedNums = q.nums.map(f => {
+                    let factor = lcmVal / f.d;
+                    return { w: f.w, n: f.n * factor, d: lcmVal };
+                });
+                html += `<div class="step-block"><div class="step-desc">1. 通分 (整數不變)</div><div class="step-math">= `;
+                extendedNums.forEach((item, i) => {
+                    if (i > 0) html += ` ${q.op[i-1]} `;
+                    if (item.w > 0) html += `<div class="mixed-num"><span class="whole-display">${item.w}</span><div class="frac-stack"><span class="frac-n highlight-blue">${item.n}</span><span class="frac-d highlight-blue">${item.d}</span></div></div>`;
+                    else html += `<div class="mixed-num"><div class="frac-stack"><span class="frac-n highlight-blue">${item.n}</span><span class="frac-d highlight-blue">${item.d}</span></div></div>`;
+                });
+                html += `</div></div>`;
+                
+                let needsBorrowing = false;
+                if (q.op[0] === '-' && extendedNums.length === 2 && extendedNums[0].n < extendedNums[1].n) needsBorrowing = true;
+                if (needsBorrowing) {
+                    let e1 = extendedNums[0];
+                    let remInt = e1.w - 1;
+                    html += `<div class="step-block"><div class="step-desc">2. 分數不夠減，向整數借 1</div><div class="step-math">= <div class="mixed-num">`;
+                    if (remInt > 0) html += `<span class="whole-display highlight-blue">${remInt}</span>`;
+                    html += `<div class="frac-stack"><span class="frac-n highlight-blue">${e1.n+e1.d}</span><span class="frac-d">${e1.d}</span></div></div> - <div class="mixed-num"><span class="whole-display">${extendedNums[1].w}</span><div class="frac-stack"><span class="frac-n">${extendedNums[1].n}</span><span class="frac-d">${extendedNums[1].d}</span></div></div></div></div>`;
+                }
+                html += `<div class="step-block"><div class="step-desc">3. 整數算整數，分數算分數</div><div class="step-math">= <span class="highlight-green">${q.ans.toHTML()}</span></div></div>`;
+            }
+            document.getElementById('explain-content').innerHTML = html;
+            UI.showScreen('screen-explain');
+        },
+
+        continue() {
+            UI.showScreen('screen-game');
+            this.nextQuestion();
+        },
+
+        endGame(win) {
+            AudioSys.playBGM();
+            if(win) {
+                let loot = Inventory.getLoot(this.mode, this.badLuck);
+                if(loot.rarity !== 'legend') this.badLuck++; else this.badLuck = 0;
+                document.getElementById('reward-icon').innerText = loot.item;
+                document.getElementById('reward-icon').style.border = loot.rarity==='legend'?'4px solid gold':'none';
+                document.getElementById('reward-msg').innerHTML = `獲得：${loot.item}<br><span style="font-size:1rem">${loot.rarity.toUpperCase()}</span>`;
+                AudioSys.sfx('correct');
+                UI.showScreen('screen-reward');
+            } else {
+                document.getElementById('explain-content').innerHTML = "<h1>生命值耗盡！</h1><p style='font-size:1.2rem; color:#ff5555;'>挑戰失敗，請重新來過！</p>";
+                UI.showScreen('screen-explain');
+                document.querySelector('#screen-explain button').innerText = "回到首頁";
+                document.querySelector('#screen-explain button').onclick = () => UI.showScreen('screen-home');
+            }
+        },
+
+        updateHUD() {
+            document.getElementById('ui-score').innerText = this.score;
+            let heartEl = document.getElementById('ui-hearts');
+            if (this.mode === 'basic') {
+                heartEl.style.display = 'none';
+            } else {
+                heartEl.style.display = 'inline';
+                heartEl.innerText = "❤️".repeat(this.hearts);
+            }
+        }
+    };
+
+    /* =========================================
+       5. UI 控制
+       ========================================= */
+   const UI = {
+        activeInput: 'w',
+        showScreen(id) {
+            if (id === 'screen-home') AudioSys.playBGM();
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        },
+        focus(id) {
+            this.activeInput = id; AudioSys.sfx('click');
+            document.querySelectorAll('.input-box').forEach(b => b.classList.remove('active'));
+            document.getElementById('in-'+id).classList.add('active');
+        },
+        nextField() {
+            let order = ['w', 'n', 'd'];
+            this.focus(order[(order.indexOf(this.activeInput)+1)%3]);
+        },
+        input(num) {
+            AudioSys.sfx('click');
+            let el = document.getElementById('in-'+this.activeInput);
+            
+            // 修改處：只要目前長度少於 4 位，就允許輸入
+            if (el.innerText.length < 4) { 
+                let newVal = el.innerText + num;
+                
+                // 修改處：移除原本 <= 18 的限制
+                // 統一改為：只要數值 < 1000 (即兩位數) 即可輸入
+                if (parseInt(newVal) < 1000) {
+                    document.getElementById('in-'+this.activeInput).innerText = newVal;
+                }
+            }
+        },
+        del() {
+            AudioSys.sfx('click');
+            let el = document.getElementById('in-'+this.activeInput);
+            el.innerText = el.innerText.slice(0, -1);
+        },
+        clearInputs() {
+            ['w','n','d'].forEach(k => document.getElementById('in-'+k).innerText = '');
+            this.focus('w');
+        }
+    };
+
+   const Inventory = {
+        data: JSON.parse(localStorage.getItem('mc_math_inv_v1')) || {},
+        table: {
+            common: ['🍎','🍞','🦴','🥩','🍪','🪵','🪨'],
+            rare: ['🗡️','🛡️','🏹','🧪','📗','💎'],
+            legend: ['🔱','👑','🐉','🔮','🦄']
+        },
+
+        getLoot(mode, badLuck) {
+            let r = Math.random(); let rarity = 'common';
+            if(mode === 'challenge') { 
+                if (badLuck >= 3 || r > 0.8) rarity = 'legend'; 
+                else if (r > 0.3) rarity = 'rare'; 
+            } else { 
+                if (r > 0.8) rarity = 'rare'; 
+            }
+            
+            let pool = this.table[rarity]; 
+            let item = pool[Math.floor(Math.random()*pool.length)];
+            
+            if(!this.data[item]) this.data[item] = {count:0, rarity:rarity};
+            this.data[item].count++;
+            localStorage.setItem('mc_math_inv_v1', JSON.stringify(this.data));
+            return {item, rarity};
+        },
+
+        show() {
+            UI.showScreen('screen-inventory');
+            let grid = document.getElementById('inv-grid'); 
+            grid.innerHTML = '';
+            
+            // 1. 取得並排序物品
+            let items = Object.entries(this.data).map(([k,v]) => ({k, ...v}));
+            const rScore = { legend:3, rare:2, common:1 };
+            items.sort((a,b) => rScore[b.rarity] - rScore[a.rarity]);
+
+            // 2. 生成固定的 15 個格子
+            const TOTAL_SLOTS = 15;
+            for (let i = 0; i < TOTAL_SLOTS; i++) {
+                let div = document.createElement('div');
+                
+                // --- 核心修改：根據行數決定「空格子」的樣式 ---
+                // 0-4 (第一行): common (白)
+                // 5-9 (第二行): rare (藍)
+                // 10-14 (第三行): legend (金)
+                let rowRarity = 'common';
+                if (i >= 5) rowRarity = 'rare';
+                if (i >= 10) rowRarity = 'legend';
+
+                if (i < items.length) {
+                    // --- 有物品：顯示物品本身的稀有度框 ---
+                    let item = items[i];
+                    div.className = `slot ${item.rarity}`; 
+                    div.innerHTML = `${item.k}<span class="count">${item.count}</span>`;
+                    div.onclick = () => AudioSys.sfx('click');
+                } else {
+                    // --- 空格子：顯示該行的預設顏色框 ---
+                    div.className = `slot ${rowRarity}`; 
+                    div.innerHTML = '';     
+                }
+                
+                grid.appendChild(div);
+            }
+        }
+    };
+    </script>
+</body>
+</html>
